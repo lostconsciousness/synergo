@@ -1,0 +1,64 @@
+version: '3.9'
+
+services:
+  api-gateway:
+    build: 
+      context: .
+      dockerfile: ./apps/api-gateway/Dockerfile
+    volumes:
+      - ./uploads:/app/uploads
+    ports:
+      - '3000:3000'
+    depends_on:
+      - auth-service
+      - redis
+      - rabbitmq
+
+  auth-service:
+    build: 
+      context: .
+      dockerfile: ./apps/auth/Dockerfile
+    ports:
+      - '3001:3000'
+    depends_on:
+      - redis
+      - rabbitmq
+
+  user-service:
+    build: 
+      context: .
+      dockerfile: ./apps/user/Dockerfile
+    ports:
+      - '3002:3000'
+    depends_on:
+      - rabbitmq
+
+  organization-service:
+    build: 
+      context: .
+      dockerfile: ./apps/organization/Dockerfile
+    ports:
+      - '3004:3000'
+    depends_on:
+      - redis
+      - rabbitmq
+
+  websocket-gateway:
+    build: 
+      context: .
+      dockerfile: ./apps/websocket-gateway/Dockerfile
+    ports:
+      - '3003:3003'
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7
+    ports:
+      - '6379:6379'
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - '5672:5672'
+      - '15672:15672'

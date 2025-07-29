@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WebSocket Notification Test</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+  <h1>🔌 WebSocket Client</h1>
+  <p id="status">Connecting...</p>
+  <p><strong>Received Notifications:</strong></p>
+  <ul id="notifications"></ul>
+
+  <script>
+    const userId = '83e706df-e3a3-4661-9f7e-e8e9f95367eb';
+    const socket = io('http://localhost:3003', {
+    query: { userId },
+    transports: ['websocket']
+    });
+
+    const statusEl = document.getElementById('status');
+    const notificationsList = document.getElementById('notifications');
+
+    socket.on('connect', () => {
+      console.log('✅ Connected to WebSocket server as', userId);
+      statusEl.textContent = '✅ Connected as ' + userId;
+    });
+
+    socket.on('disconnect', () => {
+      console.log('🔌 Disconnected');
+      statusEl.textContent = '🔌 Disconnected';
+    });
+
+    socket.on('notification', (data) => {
+      console.log('🔔 Notification:', data);
+      const li = document.createElement('li');
+      li.textContent = JSON.stringify(data);
+      notificationsList.appendChild(li);
+    });
+  </script>
+</body>
+</html>
