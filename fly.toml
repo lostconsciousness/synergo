@@ -18,15 +18,3 @@ memory = "1gb"
 cpu_kind = "shared"
 cpus = 1
 memory_mb = 1024
-
-[env]
-  DB_HOST=tramway.proxy.rlwy.net
-  DB_PORT=23723
-  DB_USERNAME=postgres
-  DB_PASSWORD=lkWPBdkBLhJfMCgSSGAEumIoJkmSVSlM
-  DB_NAME=railway
-  
-  JWT_SECRET=synergo-secret
-  
-  REDIS_HOST=redis
-  REDIS_PORT=6379
