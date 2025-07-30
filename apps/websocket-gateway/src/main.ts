@@ -30,7 +30,8 @@ async function bootstrap() {
     }
   }
 
-  await app.listen(3003);
+  const port = parseInt(process.env.PORT, 10) || 3003;
+  await app.listen(port, '0.0.0.0');
   console.log('🚀 WebSocket Gateway running on port 3003');
 }
 bootstrap();
