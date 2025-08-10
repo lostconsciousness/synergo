@@ -10,6 +10,7 @@ import { GetOrganizationRolesDto } from './dto/get-org-roles.dto';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { changeMemberRolesDto } from './dto/change-member-roles.dto';
+import { PermissionAction } from './enums/permission.enum';
 
 @Controller()
 export class OrganizationController {
@@ -68,5 +69,14 @@ export class OrganizationController {
   @MessagePattern('organization_getById')
   async getOrganizationById(data: { id: string }) {
     return this.organizationService.getOrganizationById(data.id);
+  }
+
+  @MessagePattern('organization_hasPermission')
+  async memberHasPermission(
+    userId: string,
+    organizationId: string,
+    permission: PermissionAction
+  ){
+    return this.organizationService.hasPermission(userId, organizationId, permission)
   }
 }

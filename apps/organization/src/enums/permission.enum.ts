@@ -13,6 +13,21 @@ export enum PermissionAction {
   ROLE_UPDATE        = 'role:update',
   ROLE_DELETE        = 'role:delete',
 
-  PERMISSION_READ    = 'permission:read',
-  PERMISSION_UPDATE  = 'permission:update',
+  BOARD_CREATE       = 'board:create',
+  BOARD_READ         = 'board:read',
+  BOARD_UPDATE       = 'board:update',
+  BOARD_DELETE       = 'board:delete',
+
+  COLUMN_CREATE      = 'column:create',
+  COLUMN_READ        = 'column:read',
+  COLUMN_UPDATE      = 'column:update',
+  COLUMN_DELETE      = 'column:delete',
+
+  TASK_CREATE        = 'task:create',
+  TASK_READ          = 'task:read',
+  TASK_UPDATE        = 'task:update',
+  TASK_DELETE        = 'task:delete',
+  TASK_MOVE          = 'task:move',    
+  TASK_ASSIGN        = 'task:assign',  
+  TASK_TAG_UPDATE    = 'task:tag:update',
 }

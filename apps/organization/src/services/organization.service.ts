@@ -236,14 +236,14 @@ export class OrganizationService {
     return await this.userClient.send<string>('user_getUserEmailById', userId).toPromise();
   }
 
-  private async hasPermission(
+  async hasPermission(
     userId: string,
     organizationId: string,
     permission: PermissionAction
   ): Promise<boolean> {
-    const invitedByOrgMember = await this.organizationMemberService.getOrganizationMember(userId, organizationId);
+    const orgMember = await this.organizationMemberService.getOrganizationMember(userId, organizationId);
 
-    const hasPermission = await this.roleService.rolesHavePermission(invitedByOrgMember.roles, permission);
+    const hasPermission = await this.roleService.rolesHavePermission(orgMember.roles, permission);
 
     return hasPermission;
   }

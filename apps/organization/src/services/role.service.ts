@@ -53,11 +53,75 @@ export class RoleService {
     const allPerms = Object.values(PermissionAction);
 
     const defaults = [
-      { name: 'owner', perms: allPerms },
-      { name: 'admin', perms: ['organization:read', 'organization:update', 'member:invite', 'member:read', 'member:update', 'member:remove','role:read', 'role:update', 'role:create', 'role:delete', 'permission:read', 'permission:update'] },
-      { name: 'member', perms: ['organization:read', 'member:read'] },
-      { name: 'guest', perms: ['organization:read'] },
-    ];
+  {
+    name: 'owner',
+    perms: allPerms,
+  },
+  {
+    name: 'admin',
+    perms: [
+      // Org
+      'organization:read',
+      'organization:update',
+      // Members
+      'member:invite',
+      'member:read',
+      'member:update',
+      'member:remove',
+      // Roles
+      'role:create',
+      'role:read',
+      'role:update',
+      'role:delete',
+      // Boards
+      'board:create',
+      'board:read',
+      'board:update',
+      'board:delete',
+      // Columns
+      'column:create',
+      'column:read',
+      'column:update',
+      'column:delete',
+      // Tasks
+      'task:create',
+      'task:read',
+      'task:update',
+      'task:delete',
+      'task:move',
+      'task:assign',
+      'task:tag:update',
+    ],
+  },
+  {
+    name: 'member',
+    perms: [
+      // Orgs
+      'organization:read',
+      // Members
+      'member:read',
+      // Boards
+      'board:read',
+      // Columns
+      'column:read',
+      // tasks
+      'task:create',
+      'task:read',
+      'task:update',
+      'task:move',
+      'task:tag:update',
+    ],
+  },
+  {
+    name: 'guest',
+    perms: [
+      'organization:read',
+      'board:read',
+      'column:read',
+      'task:read',
+    ],
+  },
+];
 
     const roles = await Promise.all(defaults.map(async def => {
         const permissions = await this.permRepo.find({

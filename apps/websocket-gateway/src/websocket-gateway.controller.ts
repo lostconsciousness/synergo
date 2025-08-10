@@ -5,8 +5,8 @@ import { WebsocketGatewayService } from './services/websocket-gateway.service';
 export class WebsocketGatewayController {
   constructor(private readonly websocketGatewayService: WebsocketGatewayService) {}
 
-  @Get()
-  getHello(): string {
-    return this.websocketGatewayService.getHello();
-  }
+  // @Get()
+  // getHello(): string {
+  //   return this.websocketGatewayService.getHello();
+  // }
 }

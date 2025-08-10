@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Patch, UseInterceptors, Post } from '@nestjs/common';
 import { rmqUserClient } from '../clients/user.client';
 import { UpdateFullNameDto } from '../dto/update-fullname.dto';
 import { UpdateProfilePictureDto } from '../dto/update-profilePicture.dto';
@@ -16,6 +16,7 @@ import { UpdateLanguageDto } from '../dto/update-language.dto';
 import {UploadedFile} from '@nestjs/common';
 import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
+import { SelectCurrentOrganizationDto } from '../dto/select-currentOrganization.dto';
 
 @ApiTags('User')
 @Controller('user')
@@ -34,6 +35,48 @@ export class UserController {
         } catch (error) {
             console.error('Get User error: ', error);
             return { error: error.message || 'Get User failed' };
+        }
+    }
+
+    @ApiOperation({ summary: 'Select current organization' })
+    @ApiResponse({ status: 200, description: 'Organization selected successfully.' })
+    @Post('select-current-organization')
+    @UseGuards(JwtAuthGuard)
+    async selectCurrentOrganization(
+        @CurrentUser() user: JwtPayload,
+        @Body() dto: SelectCurrentOrganizationDto,
+        @Res() res: Response
+    ) {
+        await rmqUserClient.connect();
+
+        try {
+        const result = await rmqUserClient
+            .send('user_selectCurrentOrganization', {
+            userId: user.id,
+            organizationId: dto.organizationId,
+            })
+            .toPromise();
+
+        if (!result || !result.orgAccessToken || !result.orgRefreshToken) {
+            return res.status(500).json({ error: 'Invalid response from user service' });
+        }
+
+        res.cookie('orgRefreshToken', result.orgRefreshToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict',
+            maxAge: 1000 * 60 * 60 * 24 * 7,
+        });
+
+        return res.status(200).json({
+            message: 'Current organization selected successfully',
+            orgAccessToken: result.orgAccessToken,
+        });
+        } catch (error) {
+        console.error('Select Current Organization error: ', error);
+        return res
+            .status(500)
+            .json({ error: error.message || 'Select Current Organization failed' });
         }
     }
 

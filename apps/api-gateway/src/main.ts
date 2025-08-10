@@ -15,8 +15,18 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document)
 
-  const port = parseInt(process.env.PORT, 10) || 3000;
-  await app.listen(port, '0.0.0.0');
+  app.enableCors({
+      origin: [
+        'http://localhost:5173',              
+        'https://a2f4add5c0d1.ngrok-free.app',
+        '*'
+      ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+    allowedHeaders: 'Content-Type, Authorization',
+  });
+
+  await app.listen(3000);
   console.log('API Gateway is running on http://localhost:3000');
 }
 bootstrap();

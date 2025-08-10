@@ -10,6 +10,7 @@ import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UpdatePasswordDto } from '../dto/update-password.dto';
 import { CurrentUser } from '../decorators/current-user.decorator';
+import { JwtPayload } from '../interfaces/jwt-payload.interface';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -109,6 +110,39 @@ export class AuthController {
       const result = await rmqAuthClient.send('auth_refresh', dto).toPromise();
        
       res.cookie('refreshToken', result.refreshToken, {
+          httpOnly: true,
+          secure: false, 
+          sameSite: 'strict',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+      
+      return res.send({ accessToken: result.accessToken });
+    } catch (error) {
+      console.error('Refresh token error:', error);
+      return { error: error.message || 'Token refresh failed' };
+    }
+  }
+
+  @ApiResponse({
+    status: 200,
+    description: 'Successful refresh. Returns OrgaccessToken and installs orgRefreshToken in cookie',
+    schema: {
+      example: {
+        orgAccessToken: 'eyJhbGciOiJIUzI1NiIsInR...',
+      },
+    },
+  })
+  @Post('org-refresh')
+  @UseGuards(JwtAuthGuard)
+  async orgRefresh(@Body() dto: RefreshDto, @Res({ passthrough: true }) res: Response, @CurrentUser() user: JwtPayload) {
+    await rmqAuthClient.connect();
+    try {
+      const result = await rmqAuthClient.send('auth_org_refresh', {
+        ...dto,
+        userId: user.id
+      }).toPromise();
+       
+      res.cookie('orgRefreshToken', result.refreshToken, {
           httpOnly: true,
           secure: false, 
           sameSite: 'strict',

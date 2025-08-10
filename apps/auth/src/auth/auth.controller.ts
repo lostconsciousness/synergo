@@ -7,6 +7,7 @@ import {refreshDto} from './dto/refresh.dto';
 import { LogoutDto } from './dto/logout.dto';
 import { UpdatePasswordDto } from './dto/update-password.dto';
 import { SelectCurrentOrganizationDto } from './dto/select-currentOrganization.dto';
+import { orgRefreshDto } from './dto/org-refresh.dto';
 
 @Controller()
 export class AuthController {
@@ -25,6 +26,11 @@ export class AuthController {
   @MessagePattern('auth_refresh')
   async refresh(@Payload() data: refreshDto) {
     return this.authService.refresh(data);
+  }
+
+  @MessagePattern('auth_org_refresh')
+  async orgRefreshToken(@Payload() data: orgRefreshDto) {
+    return this.authService.organizationRefresh(data);
   }
 
   @MessagePattern('auth_selectCurrentOrganization')
