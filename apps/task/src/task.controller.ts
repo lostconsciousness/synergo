@@ -36,7 +36,12 @@ export class TaskController {
 
   @MessagePattern('board_getAll')
   async getBoards(@Payload() payload: { organizationId: string }) {
-    return this.boardService.getBoards(payload.organizationId);
+    try {
+      return await this.boardService.getBoards(payload.organizationId);
+    } catch (error) {
+      console.error('board_getAll error:', error);
+      throw error;
+    }
   }
 
   @MessagePattern('board_getById')

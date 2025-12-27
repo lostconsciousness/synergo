@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TaskController } from './task.controller';
 import { TaskService } from './services/task.service';
 import { BoardService } from './services/board.service';
+import { ColumnService } from './services/column.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -18,13 +19,15 @@ import { Task } from './entities/task.entity';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
             type: 'postgres',
-            host: config.get('DB_HOST'),
-            port: Number(config.get('DB_PORT')),
-            username: config.get('DB_USERNAME'),
-            password: config.get('DB_PASSWORD'),
-            database: config.get('DB_NAME'),
+            host: config.get('DB_HOST') || 'postgres',
+            port: Number(config.get('DB_PORT')) || 5432,
+            username: config.get('DB_USERNAME') || 'postgres',
+            password: config.get('DB_PASSWORD') || 'postgres',
+            database: config.get('DB_NAME') || 'synergo',
             entities: [Board, ColumnEntity, Task],
             synchronize: true,
+            retryAttempts: 5,
+            retryDelay: 3000,
         }),
     }), 
 
@@ -37,7 +40,7 @@ import { Task } from './entities/task.entity';
         transport: Transport.RMQ,
         options: {
           urls: ['amqp://guest:guest@rabbitmq:5672'],
-          queue: 'organizations_service',
+          queue: 'organizations_queue',
           queueOptions: {
             durable: true,
           },
@@ -46,6 +49,6 @@ import { Task } from './entities/task.entity';
     ]),
   ],
   controllers: [TaskController],
-  providers: [TaskService, BoardService],
+  providers: [TaskService, BoardService, ColumnService],
 })
 export class TaskModule {}

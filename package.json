@@ -14,6 +14,7 @@
     "start:dev:gateway": "ts-node apps/api-gateway/src/main.ts",
     "start:dev:user": "ts-node apps/user/src/main.ts",
     "start:dev:organization": "ts-node apps/organization/src/main.ts",
+    "start:dev:task": "ts-node apps/task/src/main.ts",
     "start:dev:websocket-gateway": "ts-node apps/websocket-gateway/src/main.ts",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/apps/auth/main",

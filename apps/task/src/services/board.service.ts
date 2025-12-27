@@ -74,11 +74,17 @@ export class BoardService {
   }
 
   async getBoards(organizationId: string): Promise<Board[]> {
-    return this.boardRepository.find({
-      where: { organizationId },
-      relations: ['columns'],
-      order: { createdAt: 'ASC' },
-    });
+    try {
+      const boards = await this.boardRepository.find({
+        where: { organizationId, isActive: true },
+        relations: ['columns'],
+        order: { createdAt: 'ASC' },
+      });
+      return boards || [];
+    } catch (error) {
+      console.error('Get boards error:', error);
+      throw error;
+    }
   }
 
   async getBoardById(boardId: string, organizationId: string): Promise<Board> {

@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CreateOrganizationDto } from '../dto/create-organization.dto';
 import { rmqOrganizationClient } from '../clients/organization.client';
+import { rmqUserClient } from '../clients/user.client';
 import { InternalServerErrorException } from '@nestjs/common';
 import { Post, Body } from '@nestjs/common';
 import { JwtPayload } from 'jsonwebtoken';
@@ -17,20 +18,23 @@ import { CreateRoleDto } from '../dto/create-role.dto';
 
 @ApiTags('Organization')
 @Controller('organization')
-export class OrganizationController {
-  constructor() {}
+    export class OrganizationController {
+    constructor() {}
 
-    @Get(':organizationId')
-    @ApiOperation({ summary: 'Get organization info' })
-    @ApiResponse({ status: 200, description: 'Organization retrieved successfully.' })
-    @UseGuards(JwtAuthGuard, OrgAccessGuard)
-    async getOrganizationById(@Param('organizationId') organizationId: string) {
+
+    @Get('get-pemissions-list')
+    @UseGuards(JwtAuthGuard)
+    async getPermissionsList(){
         await rmqOrganizationClient.connect();
-        try {
-            return await rmqOrganizationClient.send('organization_getById', { id: organizationId }).toPromise();
-        } catch (error) {
-            console.error('Get Organization by ID error: ', error);
-            throw new InternalServerErrorException(error.message || 'Get Organization by ID failed');
+        try{
+            const result = await rmqOrganizationClient.send('organization_getPermissionsList', {}).toPromise();
+            if (result && result.status === 'error') {
+                throw new InternalServerErrorException(result.message || 'get-permissions-list failed');
+            }
+            return result
+        } catch(error){
+            console.error('get-permissions-list error: ', error);
+            throw new InternalServerErrorException(error.message || 'get-permissions-list failed');
         }
     }
 
@@ -39,11 +43,87 @@ export class OrganizationController {
     async getOrganizationsForUser(@CurrentUser() user: JwtPayload){
         await rmqOrganizationClient.connect();
         try{
-            const result = await rmqOrganizationClient.send('organization_getOrganizationsForUser', user.id)
+            const result = await rmqOrganizationClient.send('organization_getOrganizationsForUser', { userId: user.id }).toPromise();
+            if (result && result.status === 'error') {
+                throw new InternalServerErrorException(result.message || 'get-organizations-for-user failed');
+            }
             return result
         } catch(error){
             console.error('get-organizations-for-user error: ', error);
             throw new InternalServerErrorException(error.message || 'get-organizations-for-user failed');
+        }
+    }
+
+
+    @ApiOperation({ summary: 'Accept an organization invite' })
+    @ApiResponse({ status: 200, description: 'Invite accepted successfully.' })
+    @Post('accept-invite')
+    @UseGuards(JwtAuthGuard)
+    async acceptInvite(
+        @Res({ passthrough: true }) res: Response,
+        @Body() dto: { userId: string; token: string },
+        @CurrentUser() user: JwtPayload,
+    ) {
+        await rmqOrganizationClient.connect();
+        try {
+            const result = await rmqOrganizationClient.send('organization_acceptInvite', {
+                userId: user.id,
+                token: dto.token,
+            }).toPromise();
+
+            if (result && result.status === 'error') {
+                throw new InternalServerErrorException(result.message || 'Accept Organization Invite failed');
+            }
+
+            res.cookie('orgRefreshToken', result.orgTokens.refreshToken, {
+                httpOnly: true,
+                secure: false, 
+                sameSite: 'strict',
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+            });
+
+            return { 
+                message: 'Organization invite accepted successfully', 
+                organizationMember: result.organizationMember, 
+                orgAccessToken: result.orgTokens.accessToken
+            };
+        } catch (error) {
+            console.error('Accept Organization Invite error: ', error);
+            throw new InternalServerErrorException(error.message || 'Accept Organization Invite failed');
+        }
+    }
+
+    
+    @Post('create-organization')
+    @ApiOperation({ summary: 'Create a new organization' })
+    @ApiResponse({ status: 201, description: 'Organization created successfully.' })
+    @UseGuards(JwtAuthGuard)
+    async createOrganization(@Res({ passthrough: true }) res: Response, @CurrentUser() user: JwtPayload, @Body() createOrganizationDto: CreateOrganizationDto) {
+        await rmqOrganizationClient.connect();
+        try {
+            const result = await rmqOrganizationClient.send('organization_create', {
+                ...createOrganizationDto,
+                userId: user.id
+            }).toPromise();
+            
+            if (result && result.status === 'error') {
+                throw new InternalServerErrorException(result.message || 'Create Organization failed');
+            }
+            
+            res.cookie('orgRefreshToken', result.orgTokens.refreshToken, {
+                httpOnly: true,
+                secure: false, 
+                sameSite: 'strict',
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+            });
+            return {
+                message: result.message,
+                newOrganization: result.newOrganization,
+                orgAccessToken: result.orgTokens.accessToken
+            };
+        } catch (error) {
+            console.error('Create Organization error: ', error);
+            throw new InternalServerErrorException(error.message || 'Create Organization failed');
         }
     }
 
@@ -52,7 +132,10 @@ export class OrganizationController {
     async getOrganizationMembers(@Param('organizationId') organizationId: string){
                 await rmqOrganizationClient.connect();
         try{
-            const result = await rmqOrganizationClient.send('organization_getOrganizationMembers', organizationId)
+            const result = await rmqOrganizationClient.send('organization_getOrganizationMembers', { organizationId }).toPromise();
+            if (result && result.status === 'error') {
+                throw new InternalServerErrorException(result.message || 'get-organization-members failed');
+            }
             return result
         } catch(error){
             console.error('get-organization-members error: ', error);
@@ -62,10 +145,13 @@ export class OrganizationController {
 
     @Get(':organizationId/get-organization-roles')
     @UseGuards(JwtAuthGuard, OrgAccessGuard)
-    async getOrganizationRoles(@Param('organizationId') organizationId: string){
+    async getOrganizationRoles(@Param('organizationId') organizationId: string, @CurrentUser() user: JwtPayload){
         await rmqOrganizationClient.connect();
         try{
-            const result = await rmqOrganizationClient.send('organization_getOrganizationRoles', organizationId)
+            const result = await rmqOrganizationClient.send('organization_getOrganizationRoles', { organizationId, userId: user.id }).toPromise();
+            if (result && result.status === 'error') {
+                throw new InternalServerErrorException(result.message || 'get-organization-roles failed');
+            }
             return result
         } catch(error){
             console.error('get-organization-roles error: ', error);
@@ -73,18 +159,7 @@ export class OrganizationController {
         }
     }
 
-    @Get('get-pemissions-list')
-    @UseGuards(JwtAuthGuard)
-    async getPermissionsList(){
-        await rmqOrganizationClient.connect();
-        try{
-            const result = await rmqOrganizationClient.send('organization_getPermissionsList', null)
-            return result
-        } catch(error){
-            console.error('get-organization-roles error: ', error);
-            throw new InternalServerErrorException(error.message || 'get-organization-roles failed');
-        }
-    }
+    
 
     @Patch(':organizationId/update-role')
     @UseGuards(JwtAuthGuard, OrgAccessGuard)
@@ -93,11 +168,15 @@ export class OrganizationController {
         try {
         const result = await rmqOrganizationClient.send(
             'organization_updateRole',
-            { ...dto,
+            { dto: {
+                ...dto,
                 updatedById: user.id,
                 organizationId: organizationId
-             },
-        );
+             }}
+        ).toPromise();
+        if (result && result.status === 'error') {
+            throw new InternalServerErrorException(result.message || 'update-organization-role failed');
+        }
         return result;
         } catch (error) {
         console.error('update-organization-role error: ', error);
@@ -120,7 +199,10 @@ export class OrganizationController {
                 userId: memberId,
                 updatedById: user.id
             },
-        );
+        ).toPromise();
+        if (result && result.status === 'error') {
+            throw new InternalServerErrorException(result.message || 'update-member-roles failed');
+        }
         return result;
         } catch (error) {
         console.error('update-member-roles error: ', error);
@@ -130,33 +212,7 @@ export class OrganizationController {
         }
     }
 
-    @Post('create-organization')
-    @ApiOperation({ summary: 'Create a new organization' })
-    @ApiResponse({ status: 201, description: 'Organization created successfully.' })
-    @UseGuards(JwtAuthGuard)
-    async createOrganization(@Res({ passthrough: true }) res: Response, @CurrentUser() user: JwtPayload, @Body() createOrganizationDto: CreateOrganizationDto) {
-        await rmqOrganizationClient.connect();
-        try {
-            const result = await rmqOrganizationClient.send('organization_create', {
-                ...createOrganizationDto,
-                userId: user.id
-            }).toPromise();
-            res.cookie('orgRefreshToken', result.orgTokens.refreshToken, {
-                httpOnly: true,
-                secure: false, 
-                sameSite: 'strict',
-                maxAge: 7 * 24 * 60 * 60 * 1000,
-            });
-            return res.send({
-                message: result.message,
-                newOrganization: result.newOrganization,
-                orgAccessToken: result.orgTokens.accessToken
-            });
-        } catch (error) {
-            console.error('Create Organization error: ', error);
-            throw new InternalServerErrorException(error.message || 'Create Organization failed');
-        }
-    }
+    
 
 
     @Post(':organizationId/create-role')
@@ -165,10 +221,15 @@ export class OrganizationController {
         await rmqOrganizationClient.connect();
         try {
         const result = await rmqOrganizationClient.send('organization_createRole', {
-            ...dto,
-            orgId: organizationId,
-            userId: user.id
-        });
+            dto: {
+                ...dto,
+                orgId: organizationId,
+                userId: user.id
+            }
+        }).toPromise();
+        if (result && result.status === 'error') {
+            throw new InternalServerErrorException(result.message || 'create-role failed');
+        }
         return result;
         } catch (error) {
         console.error('create-role error: ', error);
@@ -194,6 +255,11 @@ export class OrganizationController {
                 email: dto.email,
                 invitedByUserId: user.id,
             }).toPromise();
+            
+            if (result && result.status === 'error') {
+                throw new InternalServerErrorException(result.message || 'Invite Organization Member failed');
+            }
+            
             return { message: 'User invited successfully', invite: result };
         } catch (error) {
             console.error('Invite Organization Member error: ', error);
@@ -201,37 +267,53 @@ export class OrganizationController {
         }
     }
 
-    @ApiOperation({ summary: 'Accept an organization invite' })
-    @ApiResponse({ status: 200, description: 'Invite accepted successfully.' })
-    @Post('accept-invite')
+    @Get(':organizationId')
+    @ApiOperation({ summary: 'Get organization info and tokens' })
+    @ApiResponse({ status: 200, description: 'Organization retrieved successfully with tokens.' })
     @UseGuards(JwtAuthGuard)
-    async acceptInvite(
-        @Res({ passthrough: true }) res: Response,
-        @Body() dto: { userId: string; token: string },
+    async getOrganizationById(
+        @Param('organizationId') organizationId: string,
         @CurrentUser() user: JwtPayload,
+        @Res({ passthrough: true }) res: Response,
     ) {
         await rmqOrganizationClient.connect();
         try {
-            const result = await rmqOrganizationClient.send('organization_acceptInvite', {
+            // Получаем информацию об организации
+            const orgResult = await rmqOrganizationClient.send('organization_getById', { id: organizationId }).toPromise();
+            if (orgResult && orgResult.status === 'error') {
+                throw new InternalServerErrorException(orgResult.message || 'Get Organization by ID failed');
+            }
+
+            // Получаем токены для организации
+            await rmqUserClient.connect();
+            const tokensResult = await rmqUserClient.send('user_selectCurrentOrganization', {
                 userId: user.id,
-                token: dto.token,
+                organizationId: organizationId,
             }).toPromise();
 
-            res.cookie('orgRefreshToken', result.orgTokens.refreshToken, {
+            if (!tokensResult || !tokensResult.accessToken || !tokensResult.refreshToken) {
+                console.error('Invalid response from user service:', tokensResult);
+                throw new InternalServerErrorException('Failed to get organization tokens');
+            }
+
+            // Устанавливаем cookie с refresh token
+            res.cookie('orgRefreshToken', tokensResult.refreshToken, {
                 httpOnly: true,
-                secure: false, 
+                secure: false,
                 sameSite: 'strict',
                 maxAge: 7 * 24 * 60 * 60 * 1000,
             });
 
-            return res.send({ 
-                message: 'Organization invite accepted successfully', 
-                organizationMember: result.organizationMember, 
-                orgAccessToken: result.orgTokens.accessToken
-            });
+            // Возвращаем данные напрямую (passthrough: true позволяет это)
+            return {
+                ...orgResult,
+                orgAccessToken: tokensResult.accessToken,
+            };
         } catch (error) {
-            console.error('Accept Organization Invite error: ', error);
-            throw new InternalServerErrorException(error.message || 'Accept Organization Invite failed');
+            console.error('Get Organization by ID error: ', error);
+            throw new InternalServerErrorException(error.message || 'Get Organization by ID failed');
         }
     }
+
+    
 }

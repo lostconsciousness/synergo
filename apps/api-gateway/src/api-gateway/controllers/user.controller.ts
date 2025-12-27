@@ -57,20 +57,21 @@ export class UserController {
             })
             .toPromise();
 
-        if (!result || !result.orgAccessToken || !result.orgRefreshToken) {
+        if (!result || !result.accessToken || !result.refreshToken) {
+            console.error('Invalid response from user service:', result);
             return res.status(500).json({ error: 'Invalid response from user service' });
         }
 
-        res.cookie('orgRefreshToken', result.orgRefreshToken, {
+        res.cookie('orgRefreshToken', result.refreshToken, {
             httpOnly: true,
-            secure: true,
+            secure: false,
             sameSite: 'strict',
             maxAge: 1000 * 60 * 60 * 24 * 7,
         });
 
         return res.status(200).json({
             message: 'Current organization selected successfully',
-            orgAccessToken: result.orgAccessToken,
+            orgAccessToken: result.accessToken,
         });
         } catch (error) {
         console.error('Select Current Organization error: ', error);

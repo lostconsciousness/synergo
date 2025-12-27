@@ -4,49 +4,77 @@ services:
   api-gateway:
     build: 
       context: .
-      dockerfile: ./apps/api-gateway/Dockerfile
+      dockerfile: ./apps/api-gateway/dockerfile
+    env_file:
+      - .env
     volumes:
       - ./uploads:/app/uploads
     ports:
       - '3000:3000'
     depends_on:
       - auth-service
+      - user-service
+      - organization-service
+      - task-service
       - redis
       - rabbitmq
 
   auth-service:
     build: 
       context: .
-      dockerfile: ./apps/auth/Dockerfile
+      dockerfile: ./apps/auth/dockerfile
+    env_file:
+      - .env
     ports:
       - '3001:3000'
     depends_on:
       - redis
       - rabbitmq
+      - postgres
 
   user-service:
     build: 
       context: .
-      dockerfile: ./apps/user/Dockerfile
+      dockerfile: ./apps/user/dockerfile
+    env_file:
+      - .env
     ports:
       - '3002:3000'
     depends_on:
       - rabbitmq
+      - postgres
 
   organization-service:
     build: 
       context: .
-      dockerfile: ./apps/organization/Dockerfile
+      dockerfile: ./apps/organization/dockerfile
+    env_file:
+      - .env
     ports:
       - '3004:3000'
     depends_on:
       - redis
       - rabbitmq
+      - postgres
+
+  task-service:
+    build: 
+      context: .
+      dockerfile: ./apps/task/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - '3005:3000'
+    depends_on:
+      - rabbitmq
+      - postgres
 
   websocket-gateway:
     build: 
       context: .
-      dockerfile: ./apps/websocket-gateway/Dockerfile
+      dockerfile: ./apps/websocket-gateway/dockerfile
+    env_file:
+      - .env
     ports:
       - '3003:3003'
     depends_on:
@@ -62,3 +90,17 @@ services:
     ports:
       - '5672:5672'
       - '15672:15672'
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: POSTGRES_USER
+      POSTGRES_PASSWORD: POSTGRES_PASSWORD
+      POSTGRES_DB: POSTGRES_DB
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

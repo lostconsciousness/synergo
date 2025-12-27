@@ -51,20 +51,29 @@ export class OrganizationService {
   }
 
   async getOrganizationsForUser(dto: getOrgsForUserDto): Promise<Organization[]> {
-    const members = await this.organizationMemberService.getOrganizationMembersByUserId(dto.userId);
-    if (!members || members.length === 0) {
-      throw new NotFoundException('No organizations found for user');
-    }
-    
-    const orgIds = members.map(member => member.orgId);
-    const orgs = await this.organizationRepo
-      .createQueryBuilder('org')
-      .select(['org.id', 'org.name', 'org.logoUrl', 'org.description'])
-      .where('org.id IN (:...ids) AND org.isActive IS true', { ids: orgIds })
-      .orderBy('org.name', 'ASC')
-      .getMany();
+    try {
+      const members = await this.organizationMemberService.getOrganizationMembersByUserId(dto.userId);
+      if (!members || members.length === 0) {
+        return [];
+      }
+      
+      const orgIds = members.map(member => member.orgId);
+      const orgs = await this.organizationRepo
+        .createQueryBuilder('org')
+        .select(['org.id', 'org.name', 'org.logo', 'org.description'])
+        .where('org.id IN (:...ids) AND org.isActive IS true', { ids: orgIds })
+        .orderBy('org.name', 'ASC')
+        .getMany();
 
-    return orgs;
+      return orgs;
+    } catch (error) {
+      console.error('getOrganizationsForUser error: ', error);
+      if (error instanceof NotFoundException) {
+        // Если не найдены члены организации, возвращаем пустой массив
+        return [];
+      }
+      throw error;
+    }
   }
 
   async getOrganizationRoles(dto: GetOrganizationRolesDto): Promise<Role[]> {

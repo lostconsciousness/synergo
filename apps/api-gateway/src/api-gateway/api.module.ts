@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthController } from './controllers/auth.controller';
 import { UserController } from './controllers/user.controller';
 import { OrganizationController } from './controllers/organization.controller';
+import { BoardController } from './controllers/board.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
@@ -17,6 +18,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       }),
     }),
   ],
-  controllers: [AuthController, UserController, OrganizationController],
+  controllers: [AuthController, UserController, OrganizationController, BoardController],
 })
 export class ApiModule {}

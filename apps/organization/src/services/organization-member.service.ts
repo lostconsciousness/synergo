@@ -24,14 +24,16 @@ export class OrganizationMemberService {
   ){}
 
   async getOrganizationMembersByUserId(userId: string): Promise<OrganizationMember[]> {
-    const members = await this.organizationMemberRepo.find({
-      where: { userId },
-      relations: ['organization', 'roles'],
-    });
-    if (!members || members.length === 0) {
-      throw new NotFoundException('No organization members found for user');
+    try {
+      const members = await this.organizationMemberRepo.find({
+        where: { userId },
+        relations: ['organization', 'roles'],
+      });
+      return members || [];
+    } catch (error) {
+      console.error('getOrganizationMembersByUserId error: ', error);
+      throw error;
     }
-    return members;
   }
 
   async getOrganizationMembersByOrgId(orgId: string): Promise<OrganizationMember[]> {

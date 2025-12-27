@@ -25,8 +25,21 @@ export class OrgAccessGuard implements CanActivate {
   }
 
   private extractOrgTokenFromHeader(request: Request): string | null {
+    // Проверяем заголовок x-org-access-token
     const orgToken = request.headers['x-org-access-token'];
-    if (!orgToken || Array.isArray(orgToken)) return null;
-    return orgToken;
+    if (orgToken && !Array.isArray(orgToken)) {
+      return orgToken;
+    }
+
+    // Проверяем стандартный Authorization заголовок с префиксом "Bearer "
+    const authHeader = request.headers['authorization'];
+    if (authHeader && !Array.isArray(authHeader)) {
+      const [type, token] = authHeader.split(' ');
+      if (type === 'Bearer' && token) {
+        return token;
+      }
+    }
+
+    return null;
   }
 }
